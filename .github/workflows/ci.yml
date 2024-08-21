@@ -24,7 +24,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
-          working-directory: src
+          working-directory: src/
           args: --issues-exit-code=0
 
   build:
