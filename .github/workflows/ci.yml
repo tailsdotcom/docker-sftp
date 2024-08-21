@@ -56,7 +56,7 @@ jobs:
             type=sha,format=long,prefix=
             type=ref,event=tag,priority=1400
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           cache-from: type=gha
           context: ${{ github.workspace }}/
