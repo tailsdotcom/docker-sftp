@@ -38,7 +38,7 @@ func main() {
 			// Should use constant-time compare (or better, salt+hash) in
 			// a production setting.
 			fmt.Fprintf(debugStream, "Login: %s\n", c.User())
-			if c.User() == "testuser" && string(pass) == "tiger" {
+			if c.User() == "sftp" && string(pass) == "DockerPassSFTP" {
 				return nil, nil
 			}
 			return nil, fmt.Errorf("password rejected for %q", c.User())
