@@ -23,9 +23,11 @@ RUN   apk update && \
 FROM alpine
 RUN adduser -DH user
 
+WORKDIR /tmp
+
 COPY --from=base /app/app /usr/local/bin
-COPY --chown=user:users id_rsa /id_rsa
-COPY --chown=user:users id_rsa.pub /id_rsa.pub
+COPY --chown=user:users id_rsa /srv/id_rsa
+COPY --chown=user:users id_rsa.pub /srv/id_rsa.pub
 
 # Run as non-root user
 RUN chmod +x /usr/local/bin/app
