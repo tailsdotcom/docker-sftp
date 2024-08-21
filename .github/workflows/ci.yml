@@ -1,0 +1,117 @@
+concurrency: ci-${{ github.ref }}
+
+name: Docker build
+
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron: "00 8 * * 1"
+
+jobs:
+  lint:
+    name: Code lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Go environment
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.22
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: src
+          args: --issues-exit-code=0
+
+  build:
+    name: Build image
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: image=moby/buildkit:master
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: tails-infrastructure-bot
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/tailsdotcom/${{ github.event.repository.name }}
+          flavor: |
+            latest=false
+          tags: |
+            type=sha,format=long,prefix=
+            type=ref,event=tag,priority=1400
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          cache-from: type=gha
+          context: ${{ github.workspace }}/
+          file: ${{ github.workspace }}/Dockerfile
+          labels: ${{ steps.meta.outputs.labels }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+  trivy:
+    name: Trivy scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: tails-infrastructure-bot
+          password: ${{ secrets.GHCR_TOKEN }}
+      - name: Pull initial image
+        run: docker pull ghcr.io/tailsdotcom/${{ github.event.repository.name }}:${{ github.sha }}
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/tailsdotcom/${{ github.event.repository.name }}:${{ github.sha }}
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+
+  push:
+    name: Push stable version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ github.ref_name == 'main' }}
+    needs:
+      - lint
+      - build
+      - trivy
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: tails-infrastructure-bot
+          password: ${{ secrets.GHCR_TOKEN }}
+      - name: Get stable tag
+        id: tag
+        run: |
+          echo "tag=stable-${{ github.sha }}-$(date +%s)" >> "$GITHUB_OUTPUT"
+      - name: Pull dev image
+        run: docker pull ghcr.io/tailsdotcom/${{ github.event.repository.name }}:${{ github.sha }}
+      - name: Docker retag
+        run: docker tag ghcr.io/tailsdotcom/${{ github.event.repository.name }}:${{ github.sha }} ghcr.io/tailsdotcom/${{ github.event.repository.name }}:${{ steps.tag.outputs.tag }}
+      - name: Docker push
+        run: docker push ghcr.io/tailsdotcom/${{ github.event.repository.name }}:${{ steps.tag.outputs.tag }}
