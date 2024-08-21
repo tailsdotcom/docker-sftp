@@ -97,7 +97,6 @@ jobs:
     needs:
       - lint
       - build
-      - trivy
     steps:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
