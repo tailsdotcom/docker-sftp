@@ -59,7 +59,7 @@ func main() {
 
 	// Once a ServerConfig has been configured, connections can be
 	// accepted.
-	listener, err := net.Listen("tcp", "0.0.0.0:2022")
+	listener, err := net.Listen("tcp", "0.0.0.0:2222")
 	if err != nil {
 		log.Fatal("failed to listen for connection", err)
 	}

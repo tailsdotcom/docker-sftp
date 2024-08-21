@@ -11,18 +11,28 @@ WORKDIR /app
 ADD src/ /app
 RUN go build -o app
 
+# Generate keys
+FROM alpine AS keygen
+RUN   apk update && \
+      apk add --no-cache \
+      openssh-keygen
+
+# to-do: make it generate keys automatically
+
 # Deploy: Copy apps into deployment container
-FROM docker.io/library/golang:alpine
+FROM alpine
 RUN adduser -DH user
 
 COPY --from=base /app/app /usr/local/bin
+COPY --chown=user:users id_rsa /id_rsa
+COPY --chown=user:users id_rsa.pub /id_rsa.pub
 
 # Run as non-root user
 RUN chmod +x /usr/local/bin/app
 RUN chown user:users /usr/local/bin/app
 
 # set environment variables
-ENV PORT=22
+ENV PORT=2222
 
 # set user for app
 USER user
