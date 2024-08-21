@@ -11,14 +11,6 @@ WORKDIR /app
 ADD src/ /app
 RUN go build -o app
 
-# Generate keys
-FROM alpine AS keygen
-RUN   apk update && \
-      apk add --no-cache \
-      openssh-keygen
-
-# to-do: make it generate keys automatically
-
 # Deploy: Copy apps into deployment container
 FROM alpine
 RUN adduser -DH user
