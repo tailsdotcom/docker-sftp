@@ -16,7 +16,6 @@ FROM docker.io/library/golang:alpine
 RUN adduser -DH user
 
 COPY --from=base /app/app /usr/local/bin
-ADD src/static /static
 
 # Run as non-root user
 RUN chmod +x /usr/local/bin/app
