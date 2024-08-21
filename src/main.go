@@ -89,6 +89,9 @@ func main() {
 		fmt.Fprintf(debugStream, "Incoming channel: %s\n", newChannel.ChannelType())
 		if newChannel.ChannelType() != "session" {
 			newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
+			if err != nil {
+				log.Fatal(err)
+			}
 			fmt.Fprintf(debugStream, "Unknown channel type: %s\n", newChannel.ChannelType())
 			continue
 		}
@@ -114,6 +117,9 @@ func main() {
 				}
 				fmt.Fprintf(debugStream, " - accepted: %v\n", ok)
 				req.Reply(ok, nil)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 		}(requests)
 
